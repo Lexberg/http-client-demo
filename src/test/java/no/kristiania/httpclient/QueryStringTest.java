@@ -12,8 +12,15 @@ public class QueryStringTest {
 
     @Test
     void shouldRetrieveOtherQueryParameter(){
-        QueryString queryString = new QueryString("status=200");
+        QueryString queryString = new QueryString("status=404");
         assertEquals("404", queryString.getParameter("status"));
+    }
+
+    @Test
+    void sholdRetrieveParameterByName() {
+        QueryString queryString = new QueryString("text=Hello");
+        assertEquals(null, queryString.getParameter("status"));
+        assertEquals("Hello", queryString.getParameter("text"));
     }
 }
 
