@@ -14,6 +14,14 @@ public class HttpClient {
                 "Host: " + hostname + "\r\n\r\n";
         socket.getOutputStream().write(request.getBytes());
 
+        String line = readLine(socket);
+
+        System.out.println(line);
+        String[] responseLineParts = line.toString().split(" ");
+        responseCode = Integer.parseInt(responseLineParts[1]);
+    }
+    private String readLine(Socket socket) throws IOException{
+
         StringBuilder line = new StringBuilder();
         int c;
         while ((c = socket.getInputStream().read()) != -1) {
@@ -21,13 +29,11 @@ public class HttpClient {
                 break;
             }
 
-            line.append((char) c);
+            line.append((char)c);
         }
+        return line.toString();
+    }
 
-        System.out.print(line);
-        String[] responseLineParts = line.toString().split(" ");
-        responseCode = Integer.parseInt(responseLineParts[1]);
-        }
 
 
     public static void main(String[] args) throws IOException {
