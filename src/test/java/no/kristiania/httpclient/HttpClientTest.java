@@ -4,18 +4,28 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class HttpClientTest {
+public class HttpClientTest{
+
     @Test
-    void shouldReadSuccessStatusCode() throws IOException {
-        HttpClient httpClient = new HttpClient("urlecho.appspot.com", 80, "/echo?status=200");
-        assertEquals(200, httpClient.getResponseCode());
+    void shouldReturnSuccessfulStatusCode() throws IOException {
+        HttpClient client = new HttpClient("urlecho.appspot.com", 80, "/echo");
+        assertEquals(200, client.getStatusCode());
     }
     @Test
-    void shouldReadFailureStatusCode() throws IOException {
-        HttpClient httpClient = new HttpClient("urlecho.appspot.com", 80, "/echo?status=401");
-        assertEquals(401, httpClient.getResponseCode());
+    void shouldReturnErrorfulStatusCode() throws IOException {
+        HttpClient client = new HttpClient("urlecho.appspot.com", 80, "/echo?status=404");
+        assertEquals(404, client.getStatusCode());
     }
-
+    @Test
+    void shouldReadResponseHeader() throws IOException {
+        HttpClient client = new HttpClient("urlecho.appspot.com", 80, "/echo?body=Kristiania");
+        assertEquals("10", client.getResponseHeader("Content-Length"));
+    }
+    @Test
+    void shouldReadResponseBody() throws IOException {
+        HttpClient client = new HttpClient("urlecho.appspot.com", 80, "/echo?body=Kristiania");
+        assertEquals("Kristiania", client.getResponseBody());
+    }
 }
