@@ -1,9 +1,13 @@
 package no.kristiania.httpclient;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 
 public class HttpServer {
+
+    private File documentRoot;
 
     public HttpServer(int port) throws IOException {
         ServerSocket serverSocket = new ServerSocket(port);
@@ -11,39 +15,68 @@ public class HttpServer {
         new Thread(() -> {
             try {
                 Socket socket = serverSocket.accept();
-                HandleRequest(socket);
+                handleRequest(socket);
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }).start();
-
     }
-    public static void main(String[] args) throws IOException{
-        new HttpServer(8080);
-    }
-
-
-    private static void HandleRequest(Socket socket) throws IOException {
-        String responseCode = "200";
-
-        String requestLine = HttpClient.readLine(socket);
+    private void handleRequest(Socket clientSocket) throws IOException {
+        String requestLine = HttpClient.readLine(clientSocket);
         System.out.println(requestLine);
+
         String requestTarget = requestLine.split(" ")[1];
+        String statusCode = null;
+        String body = null;
+
         int questionPos = requestTarget.indexOf('?');
         if (questionPos != -1) {
-            String queryString = requestTarget.substring(questionPos+1);
-            int equalsPos = queryString.indexOf('=');
-            String parameterValue = queryString.substring(equalsPos+1);
-            responseCode = parameterValue;
+            QueryString queryString = new QueryString(requestTarget.substring(questionPos + 1));
+            statusCode = queryString.getParameter("status");
+            body = queryString.getParameter("body");
+        } else if (!requestTarget.equals("/echo")) {
+            File targetFile = new File(documentRoot, requestTarget);
+
+            if (!targetFile.exists()) {
+                writeResponse(clientSocket, "404", requestTarget + " not found");
+                return;
+            }
+            String contentType = "text/html";
+            if (targetFile.getName().endsWith(".txt")) {
+                contentType = "text/plain";
+            }
+            String responseHeaders = "HTTP/1.1 200 OK\r\n" +
+                    "Content-Length: " + targetFile.length() + "\r\n" +
+                    "Content-Type: " + contentType + "\r\n" +
+                    "\r\n";
+            clientSocket.getOutputStream().write(responseHeaders.getBytes());
+            try (FileInputStream inputStream = new FileInputStream(targetFile)) {
+                inputStream.transferTo(clientSocket.getOutputStream());
+            }
         }
 
-        String response = "HTTP/1.1 " + responseCode + " OK\n" +
-                "Content-Type: text/html; charset=utf-8\r\n" +
-                "Content-Length: 11\r\n" +
+        if (statusCode == null) statusCode = "200";
+        if (body == null) body = "Hello <strong>World</strong>!";
+
+        writeResponse(clientSocket, statusCode, body);
+    }
+
+    private void writeResponse(Socket clientSocket, String statusCode, String body) throws IOException {
+        String response = "HTTP/1.1 " + statusCode + " OK\r\n" +
+                "Content-Length: " + body.length() + " \r\n" +
+                "Content-Type: text/plain\r\n" +
                 "\r\n" +
-                "Hello World";
+                body;
 
+        clientSocket.getOutputStream().write(response.getBytes());
+    }
 
-        socket.getOutputStream().write(response.getBytes());
+    public static void main(String[] args) throws IOException {
+        HttpServer server = new HttpServer(8080);
+        server.setDocumentRoot(new File("src/main/resources"));
+    }
+
+    public void setDocumentRoot(File documentRoot) {
+        this.documentRoot = documentRoot;
     }
 }
